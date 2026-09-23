@@ -1,2 +1,5 @@
-highrise-bot-sdk
+setuptools
+wheel
+pendulum>=3.0.0
 aiohttp
+highrise-bot-sdk
