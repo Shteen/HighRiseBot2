@@ -1,4 +1,5 @@
 import os
+import sys
 import asyncio
 from aiohttp import web
 from highrise import BaseBot, __main__
@@ -13,7 +14,7 @@ class Bot(BaseBot):
     async def on_chat(self, user: User, message: str):
         print(f"{user.username}: {message}")
 
-# 2. Keep-Alive Web Server for Render Health Checks
+# 2. Keep-Alive Web Server for Render
 async def handle_ping(request):
     return web.Response(text="Bot is alive!")
 
@@ -23,7 +24,6 @@ async def start_web_server():
     runner = web.AppRunner(app)
     await runner.setup()
     
-    # Render assigns a dynamic port via environment variable PORT
     port = int(os.environ.get("PORT", 8080))
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
@@ -31,10 +31,14 @@ async def start_web_server():
 
 # 3. Main Entry Point
 async def main():
-    room_id = os.environ.get("6894bd39e3e4a405517cb530")
-    token = os.environ.get("cfeae7e59e084ceef7c10f09424870c0b66b9b12b30cde66b5caf69517bd385a")
+    room_id = os.environ.get("ROOM_ID")
+    token = os.environ.get("BOT_TOKEN")
 
-    # Start both the web ping server and the Highrise bot concurrently
+    # Safety check: Verify variables are loaded
+    if not room_id or not token:
+        print("ERROR: ROOM_ID or BOT_TOKEN Environment Variables are missing in Render settings!", file=sys.stderr)
+        sys.exit(1)
+
     await start_web_server()
     
     definitions = [BotDefinition(Bot(), room_id, token)]
