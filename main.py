@@ -365,6 +365,24 @@ async def on_start(self, session_metadata: SessionMetadata):
         self.owners.add(session_metadata.room_info.owner_id)
 
 
+async def on_start(self, session_metadata: SessionMetadata):
+        print("Bot online and ready!")
+        
+        # 1. Automatically register room owner from session metadata
+        if session_metadata.room_info and session_metadata.room_info.owner_id:
+            self.owners.add(str(session_metadata.room_info.owner_id))
+            print(f"Added room owner ID '{session_metadata.room_info.owner_id}' to self.owners.")
+
+        # 2. Retrieve room details to resolve owner's username if available
+        try apex:
+            room_users = await self.highrise.get_room_users()
+            for room_user, _ in room_users.content:
+                if str(room_user.id) in self.owners:
+                    self.owners.add(room_user.username.lower())
+        except Exception as e:
+            print(f"Could not retrieve initial room users for owner check: {e}")
+
+
 # --- Render Keep-Alive Web Server ---
 async def handle_ping(request):
     return web.Response(text="Bot service is running.")
