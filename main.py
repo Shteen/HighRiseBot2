@@ -23,6 +23,12 @@ class HighriseBot(BaseBot):
         self.bail_location = None       # Position object for bail
         self.spawn_location = None      # Position object for custom spawn
         self.flash_mode = set()         # Users with flash click-teleport active
+
+        # Teleport Dictionaries by Role Tier
+        self.teleports = {}          # Public
+        self.vip_teleports = {}      # VIP+
+        self.mod_teleports = {}      # Mod+
+        self.owner_teleports = {}    # Owner only
         
         # Room Settings & Custom Messages
         self.welcome_message = "Welcome to the room, {username}!"
@@ -41,13 +47,6 @@ class HighriseBot(BaseBot):
             "wave": "emote-wave",
             "laugh": "emote-laugh",
             "kiss": "emote-kiss",
-
-        # Teleport Dictionaries by Role Tier
-        self.teleports = {}          # Public
-        self.vip_teleports = {}      # VIP+
-        self.mod_teleports = {}      # Mod+
-        self.owner_teleports = {}    # Owner only
-        
         }
 
     # Helper: Permission Checks
