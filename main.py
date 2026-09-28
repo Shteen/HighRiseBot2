@@ -40,7 +40,7 @@ class HighriseBot(BaseBot):
             "sing": "idle-singing",
             "wave": "emote-wave",
             "laugh": "emote-laugh",
-            "kiss": "emote-kiss"
+            "kiss": "emote-kiss",
 
         # Teleport Dictionaries by Role Tier
         self.teleports = {}          # Public
