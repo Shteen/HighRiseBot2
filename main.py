@@ -374,7 +374,7 @@ async def on_start(self, session_metadata: SessionMetadata):
             print(f"Added room owner ID '{session_metadata.room_info.owner_id}' to self.owners.")
 
         # 2. Retrieve room details to resolve owner's username if available
-        try apex:
+        try:
             room_users = await self.highrise.get_room_users()
             for room_user, _ in room_users.content:
                 if str(room_user.id) in self.owners:
