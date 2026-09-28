@@ -338,8 +338,26 @@ class HighriseBot(BaseBot):
             self.vips.add(target)
             await self.highrise.chat(f"⭐ Added @{target} as VIP.")
 
+       # View All Assigned Roles (Prints names to Console & Chat)
         elif cmd == "!rolelist":
-            await self.highrise.chat(f"Owners: {len(self.owners)} | Mods: {len(self.mods)} | VIPs: {len(self.vips)}")
+            owners_list = ", ".join(self.owners) if self.owners else "None"
+            mods_list = ", ".join(self.mods) if self.mods else "None"
+            vips_list = ", ".join(self.vips) if self.vips else "None"
+
+            # 🖥️ Print detailed list of users by role to Render Console
+            print("\n--- 📋 ROLE LIST MEMBERS ---")
+            print(f"👑 Owners ({len(self.owners)}): {owners_list}")
+            print(f"🛡️ Mods ({len(self.mods)}): {mods_list}")
+            print(f"⭐ VIPs ({len(self.vips)}): {vips_list}")
+            print("----------------------------\n")
+
+            # Reply in game chat
+            await self.highrise.chat(
+                f"📋 Roles:\n"
+                f"👑 Owners ({len(self.owners)}): {owners_list}\n"
+                f"🛡️ Mods ({len(self.mods)}): {mods_list}\n"
+                f"⭐ VIPs ({len(self.vips)}): {vips_list}"
+            )
 
         elif cmd == "!setjoin" and self.is_owner(user) and len(args) > 1:
             self.welcome_message = " ".join(args[1:])
