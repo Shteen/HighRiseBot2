@@ -11,7 +11,7 @@ class HighriseBot(BaseBot):
     def __init__(self):
         super().__init__()
         # Role Management
-        self.owners = set("AstraeaClaire")       # Add user IDs or usernames in string form
+        self.owners = set(AstraeaClaire)       # Add user IDs or usernames in string form
         self.mods = set()
         self.vips = set()
         
