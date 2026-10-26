@@ -191,17 +191,6 @@ class HighriseBot(BaseBot):
         # Trigger an emote on the bot: !emote [name]
         elif cmd == "!emote" and len(args) > 1:
             keyword = args[1].lower()
-            
-            # Fallback if bot_id is missing
-            if not hasattr(self, 'bot_id') or not self.bot_id:
-                try:
-                    room_users = await self.highrise.get_room_users()
-                    for u, pos in room_users.content:
-                        # Check if this user is the bot (usually matches bot token user)
-                        # Or dynamically grab the first ID if testing single-bot rooms
-                        pass
-                except Exception:
-                    pass
 
             if not hasattr(self, 'bot_id') or not self.bot_id:
                 await self.highrise.chat("❌ Bot ID not initialized. Hardcode self.bot_id in __init__.")
