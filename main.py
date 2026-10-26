@@ -215,75 +215,79 @@ class HighriseBot(BaseBot):
         # 🚀 TELEPORTATION SYSTEM (WITH ROLES)
         # ==========================================
         
-        # 1. Create Public Warp: !create tele [name]
-        elif cmd == "!create" and len(args) > 2 and args[1].lower() == "tele" and self.is_mod(user):
-            loc_name = args[2].lower()
+        # 1. Public Keyword Teleport: !setkw [keyword] (Mod / Owner)
+        elif cmd == "!setkw" and self.is_mod(user) and len(args) > 1:
+            kw = args[1].lower()
             room_users = await self.highrise.get_room_users()
             for room_user, pos in room_users.content:
                 if room_user.id == user.id and isinstance(pos, Position):
-                    self.teleports[loc_name] = pos
-                    await self.highrise.chat(f"📍 Public warp '{loc_name}' created at your position!")
+                    self.public_teleports[kw] = pos
+                    await self.highrise.chat(f"📍 Public keyword warp '{kw}' saved!")
                     return
 
-        # 2. Create VIP Warp: !createvip tele [name]
-        elif cmd == "!createvip" and len(args) > 2 and args[1].lower() == "tele" and self.is_vip(user):
-            loc_name = args[2].lower()
+        # 2. VIP Keyword Teleport: !setvipkw [keyword] (VIP / Mod / Owner)
+        elif cmd == "!setvipkw" and (self.is_vip(user) or self.is_mod(user)) and len(args) > 1:
+            kw = args[1].lower()
             room_users = await self.highrise.get_room_users()
             for room_user, pos in room_users.content:
                 if room_user.id == user.id and isinstance(pos, Position):
-                    self.vip_teleports[loc_name] = pos
-                    await self.highrise.chat(f"⭐ VIP warp '{loc_name}' created!")
+                    self.vip_teleports[kw] = pos
+                    await self.highrise.chat(f"⭐ VIP keyword warp '{kw}' saved!")
                     return
 
-        # 3. Create Mod Warp: !createmod tele [name]
-        elif cmd == "!createmod" and len(args) > 2 and args[1].lower() == "tele" and self.is_mod(user):
-            loc_name = args[2].lower()
+        # 3. Mod Keyword Teleport: !setmodkw [keyword] (Mod / Owner)
+        elif cmd == "!setmodkw" and self.is_mod(user) and len(args) > 1:
+            kw = args[1].lower()
             room_users = await self.highrise.get_room_users()
             for room_user, pos in room_users.content:
                 if room_user.id == user.id and isinstance(pos, Position):
-                    self.mod_teleports[loc_name] = pos
-                    await self.highrise.chat(f"🛡️ Mod warp '{loc_name}' created!")
+                    self.mod_teleports[kw] = pos
+                    await self.highrise.chat(f"🛡️ Mod keyword warp '{kw}' saved!")
                     return
 
-        # 4. Create Owner Warp: !createowner tele [name]
-        elif cmd == "!createowner" and len(args) > 2 and args[1].lower() == "tele" and self.is_owner(user):
-            loc_name = args[2].lower()
+        # 4. Owner Keyword Teleport: !setownerkw [keyword] (Owner Only)
+        elif cmd == "!setownerkw" and self.is_owner(user) and len(args) > 1:
+            kw = args[1].lower()
             room_users = await self.highrise.get_room_users()
             for room_user, pos in room_users.content:
                 if room_user.id == user.id and isinstance(pos, Position):
-                    self.owner_teleports[loc_name] = pos
-                    await self.highrise.chat(f"👑 Owner warp '{loc_name}' created!")
+                    self.owner_teleports[kw] = pos
+                    await self.highrise.chat(f"👑 Owner keyword warp '{kw}' saved!")
                     return
 
-        # 5. Use Teleport (Checks tier permissions): !tele @username [name]
-        elif cmd == "!tele" and len(args) > 2:
+        # Teleport a selected user to a keyword warp: !telekw @username [keyword] (Mod / Owner)
+        elif cmd == "!telekw" and (self.is_mod(user) or self.is_owner(user)) and len(args) > 2:
             target_username = args[1].replace("@", "").lower()
-            loc_name = args[2].lower()
+            keyword = args[2].lower()
             
-            target_pos = None
-            if loc_name in self.teleports:
-                target_pos = self.teleports[loc_name]
-            elif loc_name in self.vip_teleports:
-                if self.is_vip(user):
-                    target_pos = self.vip_teleports[loc_name]
-                else:
-                    await self.highrise.chat("❌ Access denied: '{loc_name}' is a VIP-only warp.")
-                    return
-            elif loc_name in self.mod_teleports:
-                if self.is_mod(user):
-                    target_pos = self.mod_teleports[loc_name]
-                else:
-                    await self.highrise.chat("❌ Access denied: '{loc_name}' is a Moderator-only warp.")
-                    return
-            elif loc_name in self.owner_teleports:
-                if self.is_owner(user):
-                    target_pos = self.owner_teleports[loc_name]
-                else:
-                    await self.highrise.chat("❌ Access denied: '{loc_name}' is an Owner-only warp.")
-                    return
-            else:
-                await self.highrise.chat(f"❌ Location '{loc_name}' does not exist.")
+            # Find target user in the room
+            room_users = await self.highrise.get_room_users()
+            target_id = None
+            for room_user, _ in room_users.content:
+                if room_user.username.lower() == target_username:
+                    target_id = room_user.id
+                    break
+            
+            if not target_id:
+                await self.highrise.chat(f"⚠️ User @{target_username} not found in the room.")
                 return
+
+            # Check and execute teleport based on where the keyword is stored
+            if hasattr(self, 'public_teleports') and keyword in self.public_teleports:
+                await self.highrise.teleport(target_id, self.public_teleports[keyword])
+                await self.highrise.chat(f"✨ Teleported @{target_username} to public warp '{keyword}'.")
+            elif hasattr(self, 'vip_teleports') and keyword in self.vip_teleports:
+                await self.highrise.teleport(target_id, self.vip_teleports[keyword])
+                await self.highrise.chat(f"✨ Teleported @{target_username} to VIP warp '{keyword}'.")
+            elif hasattr(self, 'mod_teleports') and keyword in self.mod_teleports:
+                await self.highrise.teleport(target_id, self.mod_teleports[keyword])
+                await self.highrise.chat(f"✨ Teleported @{target_username} to Mod warp '{keyword}'.")
+            elif hasattr(self, 'owner_teleports') and keyword in self.owner_teleports:
+                await self.highrise.teleport(target_id, self.owner_teleports[keyword])
+                await self.highrise.chat(f"✨ Teleported @{target_username} to Owner warp '{keyword}'.")
+            else:
+                await self.highrise.chat(f"❌ Keyword warp '{keyword}' does not exist.")
+            return
 
             # Find target user ID and move them
             room_users = await self.highrise.get_room_users()
@@ -299,26 +303,76 @@ class HighriseBot(BaseBot):
             else:
                 await self.highrise.chat(f"⚠️ User @{target_username} not found in room.")
 
-        # 6. List All Warps
-        elif cmd == "!listtele":
-            pub = ", ".join(self.teleports.keys()) or "None"
-            vip = ", ".join(self.vip_teleports.keys()) or "None"
-            mod = ", ".join(self.mod_teleports.keys()) or "None"
-            owner = ", ".join(self.owner_teleports.keys()) or "None"
-            await self.highrise.chat(f"📍 Warps:\nPublic: {pub}\nVIP: {vip}\nMod: {mod}\nOwner: {owner}")
+       # Secret Staff Teleport List: !alltele (Mod / Owner Only - Whispered)
+        elif cmd == "!alltele" and (self.is_mod(user) or self.is_owner(user)):
+            pub_list = ", ".join(self.public_teleports.keys()) if hasattr(self, 'public_teleports') and self.public_teleports else "None"
+            vip_list = ", ".join(self.vip_teleports.keys()) if hasattr(self, 'vip_teleports') and self.vip_teleports else "None"
+            mod_list = ", ".join(self.mod_teleports.keys()) if hasattr(self, 'mod_teleports') and self.mod_teleports else "None"
+            owner_list = ", ".join(self.owner_teleports.keys()) if hasattr(self, 'owner_teleports') and self.owner_teleports else "None"
 
-        # 7. Remove Teleport (Mod/Owner)
-        elif cmd == "!remtele" and self.is_mod(user) and len(args) > 1:
-            loc_name = args[1].lower()
-            found = False
-            for d in [self.teleports, self.vip_teleports, self.mod_teleports, self.owner_teleports]:
-                if loc_name in d:
-                    del d[loc_name]
-                    found = True
-            if found:
-                await self.highrise.chat(f"🗑️ Removed warp '{loc_name}'.")
+            whisper_msg = (
+                "🔒 --- ALL AVAILABLE TELEPORTS ---\n"
+                f"• Public: {pub_list}\n"
+                f"• VIP: {vip_list}\n"
+                f"• Mod: {mod_list}\n"
+                f"• Owner: {owner_list}"
+            )
+            
+            try:
+                await self.highrise.send_whisper(user.id, whisper_msg)
+            except Exception as e:
+                print(f"Failed to send whisper: {e}")
+            return
+
+        # Remove a teleport keyword from any tier: !remtele [keyword] (Mod / Owner)
+        elif cmd == "!remtele" and (self.is_mod(user) or self.is_owner(user)) and len(args) > 1:
+            keyword = args[1].lower()
+            removed = False
+
+            # Check and delete from all tier dictionaries
+            for tele_dict in [self.public_teleports, self.vip_teleports, self.mod_teleports, self.owner_teleports]:
+                if keyword in tele_dict:
+                    del tele_dict[keyword]
+                    removed = True
+
+            if removed:
+                await self.highrise.chat(f"🗑️ Successfully removed teleport keyword '{keyword}'.")
             else:
-                await self.highrise.chat(f"Warp '{loc_name}' not found.")
+                await self.highrise.chat(f"❌ Teleport keyword '{keyword}' not found in any tier.")
+            return
+
+
+        # --- DIRECT KEYWORD TELEPORT HANDLER ---
+        kw_input = message.strip().lower()
+
+        # Check Public Warps
+        if hasattr(self, 'public_teleports') and kw_input in self.public_teleports:
+            await self.highrise.teleport(user.id, self.public_teleports[kw_input])
+            return
+
+        # Check VIP Warps
+        if hasattr(self, 'vip_teleports') and kw_input in self.vip_teleports:
+            if self.is_vip(user) or self.is_mod(user) or self.is_owner(user):
+                await self.highrise.teleport(user.id, self.vip_teleports[kw_input])
+            else:
+                await self.highrise.chat(f"❌ '{kw_input}' is a VIP-only location.")
+            return
+
+        # Check Mod Warps
+        if hasattr(self, 'mod_teleports') and kw_input in self.mod_teleports:
+            if self.is_mod(user) or self.is_owner(user):
+                await self.highrise.teleport(user.id, self.mod_teleports[kw_input])
+            else:
+                await self.highrise.chat(f"❌ '{kw_input}' is a Mod-only location.")
+            return
+
+        # Check Owner Warps
+        if hasattr(self, 'owner_teleports') and kw_input in self.owner_teleports:
+            if self.is_owner(user):
+                await self.highrise.teleport(user.id, self.owner_teleports[kw_input])
+            else:
+                await self.highrise.chat(f"❌ '{kw_input}' is an Owner-only location.")
+            return
 
         # ==========================================
         # 👥 STAFF & ACCESS CONTROL
