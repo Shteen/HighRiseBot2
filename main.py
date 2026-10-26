@@ -191,6 +191,10 @@ class HighriseBot(BaseBot):
         elif cmd == "!emote" and len(args) > 1:
             keyword = args[1].lower()
             
+            if not hasattr(self, 'bot_id') or not self.bot_id:
+                await self.highrise.chat("❌ Bot ID not initialized yet. Try again in a moment.")
+                return
+
             if keyword in EMOTES:
                 emote_data = EMOTES[keyword]
                 emote_id = emote_data["id"]
@@ -200,7 +204,7 @@ class HighriseBot(BaseBot):
                 except Exception as e:
                     await self.highrise.chat(f"❌ Failed to perform emote: {e}")
             else:
-                await self.highrise.chat(f"❌ Unknown emote name. Check your emotes.py list!")
+                await self.highrise.chat(f"❌ Unknown emote name.")
             return
 
         elif cmd == "!trivia":
@@ -467,6 +471,15 @@ async def on_start(self, session_metadata: SessionMetadata):
                     self.owners.add(room_user.username.lower())
         except Exception as e:
             print(f"Could not retrieve initial room users for owner check: {e}")
+
+        # Capture the bot's own user ID
+        if session_metadata and session_metadata.user_id:
+            self.bot_id = session_metadata.user_id
+            print(f"Bot User ID registered: {self.bot_id}")
+
+        # (Keep your existing room owner code here if you have it)
+        if session_metadata.room_info and session_metadata.room_info.owner_id:
+            self.owners.add(str(session_metadata.room_info.owner_id))
 
 
 # --- Render Keep-Alive Web Server ---
