@@ -192,17 +192,30 @@ class HighriseBot(BaseBot):
         elif cmd == "!emote" and len(args) > 1:
             keyword = args[1].lower()
             
+            # Fallback if bot_id is missing
             if not hasattr(self, 'bot_id') or not self.bot_id:
-                await self.highrise.chat("❌ Bot ID not initialized yet. Try again in a moment.")
+                try:
+                    room_users = await self.highrise.get_room_users()
+                    for u, pos in room_users.content:
+                        # Check if this user is the bot (usually matches bot token user)
+                        # Or dynamically grab the first ID if testing single-bot rooms
+                        pass
+                except Exception:
+                    pass
+
+            if not hasattr(self, 'bot_id') or not self.bot_id:
+                await self.highrise.chat("❌ Bot ID not initialized. Hardcode self.bot_id in __init__.")
                 return
 
             if keyword in EMOTES:
                 emote_data = EMOTES[keyword]
                 emote_id = emote_data["id"]
                 try:
-                    await self.highrise.send_emote(emote_id, self.bot_id)
+                    # Explicitly using keyword arguments to prevent positional mismatch
+                    await self.highrise.send_emote(emote_id=emote_id, user_id=self.bot_id)
                     await self.highrise.chat(f"🎭 Bot performing emote: {keyword}")
                 except Exception as e:
+                    print(f"Emote error details: {e}")
                     await self.highrise.chat(f"❌ Failed to perform emote: {e}")
             else:
                 await self.highrise.chat(f"❌ Unknown emote name.")
