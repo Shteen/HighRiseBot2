@@ -6,6 +6,7 @@ from aiohttp import web
 from highrise import BaseBot, __main__
 from highrise.__main__ import BotDefinition
 from highrise.models import SessionMetadata, User, Position, CurrencyItem
+from emotes import EMOTES
 
 class HighriseBot(BaseBot):
     def __init__(self):
@@ -185,9 +186,22 @@ class HighriseBot(BaseBot):
         # ==========================================
         # 💃 EMOTES & FUN ZONE
         # ==========================================
-        elif cmd == "!emotelist":
-            emote_names = ", ".join(self.emotes.keys())
-            await self.highrise.chat(f"Available emotes: {emote_names}")
+       
+        # Trigger an emote on the bot: !emote [name]
+        elif cmd == "!emote" and len(args) > 1:
+            keyword = args[1].lower()
+            
+            if keyword in EMOTES:
+                emote_data = EMOTES[keyword]
+                emote_id = emote_data["id"]
+                try:
+                    await self.highrise.send_emote(emote_id, self.bot_id)
+                    await self.highrise.chat(f"🎭 Bot performing emote: {keyword}")
+                except Exception as e:
+                    await self.highrise.chat(f"❌ Failed to perform emote: {e}")
+            else:
+                await self.highrise.chat(f"❌ Unknown emote name. Check your emotes.py list!")
+            return
 
         elif cmd == "!trivia":
             if not self.trivia_active:
