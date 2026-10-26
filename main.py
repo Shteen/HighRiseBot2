@@ -15,7 +15,7 @@ class HighriseBot(BaseBot):
         self.owners = {"astraeaclaire"}       # Add user IDs or usernames in string form
         self.mods = set()
         self.vips = set()
-        self.bot_id = cfeae7e59e084ceef7c10f09424870c0b66b9b12b30cde66b5caf69517bd385a
+        self.bot_id = "cfeae7e59e084ceef7c10f09424870c0b66b9b12b30cde66b5caf69517bd385a"
         
         # State Tracking
         self.frozen_users = set()       # Set of frozen user IDs
