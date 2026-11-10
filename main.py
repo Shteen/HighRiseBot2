@@ -127,14 +127,6 @@ class HighriseBot(BaseBot):
             self.muted_users.discard(target)
             await self.highrise.chat(f"🔊 @{target} has been unmuted.")
 
-        elif cmd == "!kick" and self.is_mod(user) and len(args) > 1:
-            target = args[1].replace("@", "")
-            try:
-                await self.highrise.kick(target)
-                await self.highrise.chat(f"👢 Kicked @{target} from the room.")
-            except Exception as e:
-                await self.highrise.chat(f"Failed to kick user: {e}")
-
         elif cmd == "!jail" and self.is_mod(user) and len(args) > 1:
             target = args[1].replace("@", "")
             if self.jail_location:
@@ -183,6 +175,83 @@ class HighriseBot(BaseBot):
                 task.cancel()
             self.user_loops.clear()
             await self.highrise.chat("Stopped all room loops.")
+
+
+        # 1. Kick User: !kick @username (Mod / Owner)
+        elif cmd == "!kick" and (self.is_mod(user) or self.is_owner(user)) and len(args) > 1:
+            target_username = args[1].replace("@", "").lower()
+
+            # Prevent staff members from kicking the Owner or themselves
+            if target_username == "astraeaclaire" or target_username == user.username.lower():
+                await self.highrise.chat("❌ Cannot kick this user.")
+                return
+
+            # Find target user in room
+            room_users = await self.highrise.get_room_users()
+            target_user = None
+            for room_user, _ in room_users.content:
+                if room_user.username.lower() == target_username:
+                    target_user = room_user
+                    break
+
+            if not target_user:
+                await self.highrise.chat(f"⚠️ User @{target_username} not found in room.")
+                return
+
+            try:
+                # Moderate action: kick
+                await self.highrise.moderate_room(target_user.id, "kick")
+                await self.highrise.chat(f"👢 Kicked @{target_username} from the room.")
+            except Exception as e:
+                print(f"Kick error: {e}")
+                await self.highrise.chat(f"❌ Failed to kick user. (Check bot permissions)")
+            return
+
+        # 2. Ban User: !ban @username [duration_seconds] (Owner Only or Mod)
+        # Duration optional; defaults to 300s (5 min) or pass seconds (e.g., 3600 for 1 hr)
+        elif cmd == "!ban" and (self.is_mod(user) or self.is_owner(user)) and len(args) > 1:
+            target_username = args[1].replace("@", "").lower()
+            
+            # Default ban length (seconds). Standard options: 300 (5 min), 3600 (1hr), 86400 (1 day)
+            ban_duration = 300
+            if len(args) > 2 and args[2].isdigit():
+                ban_duration = int(args[2])
+
+            if target_username == "astraeaclaire" or target_username == user.username.lower():
+                await self.highrise.chat("❌ Cannot ban this user.")
+                return
+
+            room_users = await self.highrise.get_room_users()
+            target_user = None
+            for room_user, _ in room_users.content:
+                if room_user.username.lower() == target_username:
+                    target_user = room_user
+                    break
+
+            if not target_user:
+                await self.highrise.chat(f"⚠️ User @{target_username} not found in room.")
+                return
+
+            try:
+                # Moderate action: ban (requires user ID, action, and duration in seconds)
+                await self.highrise.moderate_room(target_user.id, "ban", ban_duration)
+                await self.highrise.chat(f"🚫 Banned @{target_username} for {ban_duration} seconds.")
+            except Exception as e:
+                print(f"Ban error: {e}")
+                await self.highrise.chat(f"❌ Failed to ban user. Ensure bot has room designer/host rights.")
+            return
+
+
+        # 3. Unban User ID: !unban [user_id] (Mod / Owner)
+        elif cmd == "!unban" and (self.is_mod(user) or self.is_owner(user)) and len(args) > 1:
+            target_id = args[1]
+            try:
+                await self.highrise.moderate_room(target_id, "unban")
+                await self.highrise.chat(f"✅ Unbanned user ID {target_id}.")
+            except Exception as e:
+                await self.highrise.chat(f"❌ Failed to unban: {e}")
+            return
+        
 
         # ============================================================================================================
         # 💃 EMOTES & FUN ZONE
