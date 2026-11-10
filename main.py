@@ -232,6 +232,35 @@ class HighriseBot(BaseBot):
             scores = ", ".join([f"{u}: {s}" for u, s in self.trivia_scores.items()])
             await self.highrise.chat(f"🏆 Scores: {scores if scores else 'No scores yet.'}")
 
+
+        # Copy a user's outfit to the bot: !fit @username (Owner / Mod)
+        elif cmd == "!fit" and (self.is_owner(user) or self.is_mod(user)) and len(args) > 1:
+            target_username = args[1].replace("@", "").lower()
+
+            # 1. Find target user in the room
+            room_users = await self.highrise.get_room_users()
+            target_user = None
+            for room_user, _ in room_users.content:
+                if room_user.username.lower() == target_username:
+                    target_user = room_user
+                    break
+
+            if not target_user:
+                await self.highrise.chat(f"⚠️ User @{target_username} not found in the room.")
+                return
+
+            try:
+                # 2. Get the target user's current outfit
+                target_outfit = await self.highrise.get_user_outfit(target_user.id)
+                
+                # 3. Apply outfit to the bot
+                await self.highrise.set_outfit(outfit=target_outfit.outfit)
+                await self.highrise.chat(f"✨ Successfully cloned @{target_username}'s outfit!")
+            except Exception as e:
+                print(f"Outfit copy error: {e}")
+                await self.highrise.chat(f"❌ Failed to copy outfit: {e}")
+            return
+
         # ============================================================================================================
         # 🚀 TELEPORTATION SYSTEM (WITH ROLES)
         # ============================================================================================================
