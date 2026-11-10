@@ -103,9 +103,9 @@ class HighriseBot(BaseBot):
                 self.trivia_active = False
                 self.trivia_answer = None
 
-        # ==========================================
+        # ============================================================================================================
         # 🛡️ MODERATION CONTROL
-        # ==========================================
+        # ============================================================================================================
         if cmd == "!freeze" and self.is_mod(user) and len(args) > 1:
             target = args[1].replace("@", "")
             # Lock target in frozen list
@@ -184,9 +184,9 @@ class HighriseBot(BaseBot):
             self.user_loops.clear()
             await self.highrise.chat("Stopped all room loops.")
 
-        # ==========================================
+        # ============================================================================================================
         # 💃 EMOTES & FUN ZONE
-        # ==========================================
+        # ============================================================================================================
        
         # Trigger an emote on the bot: !emote [name]
         elif cmd == "!emote" and len(args) > 1:
@@ -232,9 +232,9 @@ class HighriseBot(BaseBot):
             scores = ", ".join([f"{u}: {s}" for u, s in self.trivia_scores.items()])
             await self.highrise.chat(f"🏆 Scores: {scores if scores else 'No scores yet.'}")
 
-      # ==========================================
+        # ============================================================================================================
         # 🚀 TELEPORTATION SYSTEM (WITH ROLES)
-        # ==========================================
+        # ============================================================================================================
         
         # 1. Public Keyword Teleport: !setkw [keyword] (Mod / Owner)
         elif cmd == "!setkw" and self.is_mod(user) and len(args) > 1:
@@ -395,9 +395,9 @@ class HighriseBot(BaseBot):
                 await self.highrise.chat(f"❌ '{kw_input}' is an Owner-only location.")
             return
 
-        # ==========================================
+        # ============================================================================================================
         # 👥 STAFF & ACCESS CONTROL
-        # ==========================================
+        # ============================================================================================================
         elif cmd == "!mod" and self.is_owner(user) and len(args) > 1:
             target = args[1].replace("@", "").lower()
             self.mods.add(target)
@@ -438,19 +438,127 @@ class HighriseBot(BaseBot):
             self.welcome_message = " ".join(args[1:])
             await self.highrise.chat("Set room welcome message.")
 
-        # ==========================================
+        # ============================================================================================================
         # 🤖 BOT & ROOM FEATURES
-        # ==========================================
-        elif cmd == "!wallet" and self.is_mod(user):
+        # ============================================================================================================
+
+
+        # 1. Check Bot Wallet Balance: !wallet (Owner Only)
+        elif cmd == "!wallet" and self.is_owner(user):
             try:
-                wallet = await self.highrise.get_wallet()
-                gold = 0
-                for item in wallet.content:
-                    if isinstance(item, CurrencyItem) and item.type == "gold":
-                        gold = item.amount
-                await self.highrise.chat(f"💰 Bot Wallet Balance: {gold} Gold")
+                wallet_info = await self.highrise.get_wallet()
+                gold_balance = 0
+                
+                # Parse wallet content for gold currency
+                for currency in wallet_info.content:
+                    if currency.type == "gold":
+                        gold_balance = currency.amount
+                        break
+                
+                # Send private whisper to owner only
+                await self.highrise.send_whisper(user.id, f"💰 Bot Wallet Balance: {gold_balance} Gold")
             except Exception as e:
-                await self.highrise.chat(f"Could not retrieve wallet: {e}")
+                await self.highrise.chat(f"❌ Failed to fetch wallet balance: {e}")
+            return
+
+        # 2. Tip Specific User: !tip @username [amount] (Owner Only)
+        elif cmd == "!tip" and self.is_owner(user) and len(args) > 2:
+            target_username = args[1].replace("@", "").lower()
+            amount_input = args[2].lower()
+            
+            amount_map = {
+                "1": "gold_bar_1", "5": "gold_bar_5", "10": "gold_bar_10",
+                "50": "gold_bar_50", "100": "gold_bar_100", "500": "gold_bar_500",
+                "1k": "gold_bar_1k", "5000": "gold_bar_5000", "10k": "gold_bar_10k"
+            }
+            tip_amount = amount_map.get(amount_input, amount_input)
+            
+            if tip_amount not in amount_map.values():
+                await self.highrise.chat("❌ Invalid amount. Options: 1, 5, 10, 50, 100, 500, 1k, 5000, 10k")
+                return
+
+            room_users = await self.highrise.get_room_users()
+            target_id = None
+            for room_user, _ in room_users.content:
+                if room_user.username.lower() == target_username:
+                    target_id = room_user.id
+                    break
+
+            if not target_id:
+                await self.highrise.chat(f"⚠️ User @{target_username} not found in the room.")
+                return
+
+            try:
+                await self.highrise.tip_user(target_id, tip_amount)
+                await self.highrise.chat(f"💸 Tipped @{target_username} {amount_input} Gold!")
+            except Exception as e:
+                await self.highrise.chat(f"❌ Tip failed: {e}")
+            return
+
+        # 3. Tip ALL Users in the Room: !tipall [amount] (Owner Only)
+        elif cmd == "!tipall" and self.is_owner(user) and len(args) > 1:
+            amount_input = args[1].lower()
+            amount_map = {
+                "1": "gold_bar_1", "5": "gold_bar_5", "10": "gold_bar_10",
+                "50": "gold_bar_50", "100": "gold_bar_100", "500": "gold_bar_500",
+                "1k": "gold_bar_1k", "5000": "gold_bar_5000", "10k": "gold_bar_10k"
+            }
+            tip_amount = amount_map.get(amount_input, amount_input)
+
+            if tip_amount not in amount_map.values():
+                await self.highrise.chat("❌ Invalid amount. Options: 1, 5, 10, 50, 100, 500, 1k, 5000, 10k")
+                return
+
+            room_users = await self.highrise.get_room_users()
+            tipped_count = 0
+
+            for room_user, _ in room_users.content:
+                # Skip tipping the bot itself
+                if hasattr(self, 'bot_id') and room_user.id == self.bot_id:
+                    continue
+                try:
+                    await self.highrise.tip_user(room_user.id, tip_amount)
+                    tipped_count += 1
+                except Exception as e:
+                    print(f"Failed to tip {room_user.username}: {e}")
+
+            await self.highrise.chat(f"🎉 Tipped {amount_input} Gold to all {tipped_count} users in the room!")
+            return
+
+        # 4. Tip a Random User in the Room: !tiprandom [amount] (Owner Only)
+        elif cmd == "!tiprandom" and self.is_owner(user) and len(args) > 1:
+            import random
+            amount_input = args[1].lower()
+            amount_map = {
+                "1": "gold_bar_1", "5": "gold_bar_5", "10": "gold_bar_10",
+                "50": "gold_bar_50", "100": "gold_bar_100", "500": "gold_bar_500",
+                "1k": "gold_bar_1k", "5000": "gold_bar_5000", "10k": "gold_bar_10k"
+            }
+            tip_amount = amount_map.get(amount_input, amount_input)
+
+            if tip_amount not in amount_map.values():
+                await self.highrise.chat("❌ Invalid amount. Options: 1, 5, 10, 50, 100, 500, 1k, 5000, 10k")
+                return
+
+            room_users = await self.highrise.get_room_users()
+            # Filter out the bot
+            eligible_users = [
+                u for u, _ in room_users.content 
+                if not (hasattr(self, 'bot_id') and u.id == self.bot_id)
+            ]
+
+            if not eligible_users:
+                await self.highrise.chat("⚠️ No eligible users in the room to tip.")
+                return
+
+            chosen_user = random.choice(eligible_users)
+
+            try:
+                await self.highrise.tip_user(chosen_user.id, tip_amount)
+                await self.highrise.chat(f"🎲 Random winner! Tipped @{chosen_user.username} {amount_input} Gold!")
+            except Exception as e:
+                await self.highrise.chat(f"❌ Failed to tip random user: {e}")
+            return
 
 async def on_start(self, session_metadata: SessionMetadata):
     print("Bot online and ready!")
